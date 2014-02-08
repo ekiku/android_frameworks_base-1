@@ -2746,6 +2746,12 @@ public final class Settings {
          * @hide
          */
         public static final String POINTER_SPEED = "pointer_speed";
+	
+	/**
+         * Toggle to let trackball wake the screen.
+         * @hide
+         */
+	public static final String TRACKBALL_WAKE_SCREEN = "trackball_wake_screen";
 
         /**
          * I am the lolrus.

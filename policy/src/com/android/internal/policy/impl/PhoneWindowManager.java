@@ -491,6 +491,9 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     boolean mAllowLockscreenWhenOn;
     int mLockScreenTimeout;
     boolean mLockScreenTimerActive;
+    
+    // Behavior of trackball wake
+    boolean mTrackballWakeScreen;
 
     // Behavior of ENDCALL Button.  (See Settings.System.END_BUTTON_BEHAVIOR.)
     int mEndcallBehavior;
@@ -675,6 +678,8 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             resolver.registerContentObserver(Settings.System.getUriFor(
                     Settings.System.KEY_APP_SWITCH_LONG_PRESS_ACTION), false, this,
                     UserHandle.USER_ALL);
+	    resolver.registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.TRACKBALL_WAKE_SCREEN), false, this);
 
             updateSettings();
         }
@@ -1492,6 +1497,8 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                         Settings.System.EXPANDED_DESKTOP_STATE, 0, UserHandle.USER_CURRENT) == 0) {
                 mExpandedDesktopStyle = 0;
             }
+	    // Trackball wake
+	    mTrackballWakeScreen = (Settings.System.getInt(resolver, Settings.System.TRACKBALL_WAKE_SCREEN, 1) == 1);
 
             updateKeyAssignments();
 
@@ -4760,8 +4767,15 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     public int interceptMotionBeforeQueueingWhenScreenOff(int policyFlags) {
         int result = 0;
 
-        final boolean isWakeMotion = (policyFlags
-                & (WindowManagerPolicy.FLAG_WAKE | WindowManagerPolicy.FLAG_WAKE_DROPPED)) != 0;
+        final int policyflag = (policyFlags
+                & (WindowManagerPolicy.FLAG_WAKE | WindowManagerPolicy.FLAG_WAKE_DROPPED));
+        final boolean isWakeMotion = ((policyflag != 0) && (policyflag != 3))
+        // mouse events will produce a 1 (WAKE) or 2 (WAKE_DROPPED) but never 3,
+        // so we can assign 3 as a special value for the trackball motion events
+        // in InputReader.cpp so we can AND it with a toggle setting
+        // This is really wrong but seems to work without effecting external
+        // devices ability to wake the device.
+            || ((policyflag == 3) && mTrackballWakeScreen);
         if (isWakeMotion) {
             result |= ACTION_WAKE_UP;
         }
